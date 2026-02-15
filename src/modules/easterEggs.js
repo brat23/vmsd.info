@@ -1,6 +1,6 @@
 // easterEggs.js - Manages interactive easter egg functionalities
 
-import { animateCurrencyGain, checkLevelUp, showXpBarTemporarily } from './uiElements.js';
+import { animateCurrencyGain, checkLevelUp, showXpBarTemporarily, animateXPGain } from './uiElements.js'; // Added animateXPGain
 import { createParticleExplosion } from './utilities.js';
 import { addXP } from './gameState.js';
 
@@ -61,6 +61,17 @@ export function initEasterEggs() {
         
         createParticleExplosion(this, '🗺️');
         animateCurrencyGain();
+    });
+
+    // Backdrop click for +5 XP
+    document.body.addEventListener('click', (event) => {
+        const tagName = event.target.tagName;
+        const isInteractive = ['A', 'BUTTON', 'INPUT', 'TEXTAREA', 'SELECT'].includes(tagName) ||
+                              event.target.closest('.currency-hud, .xp-bar, .notify-form, .footer-link, .feature-card, .department-card, .cert-card, .neural-canvas-container');
+
+        if (!isInteractive) {
+            animateXPGain(5, event.clientX, event.clientY);
+        }
     });
 
     console.log('🎮 VMSD Retail Simulation World - Landing Page Loaded');

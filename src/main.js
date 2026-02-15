@@ -5,7 +5,7 @@ import { initClouds } from './modules/backgroundEffects.js';
 import { initFeatures, initDepartments, initCertifications } from './modules/sectionRenderer.js';
 import { initNeuralNetwork, startStopNeuralAnimation } from './modules/neuralNetwork.js';
 import { initScrollAnimations } from './modules/scrollAnimations.js';
-import { initParticleEffects } from './modules/utilities.js'; // Assuming particle effects are utilities for now
+import { initParticleEffects, createRipple } from './modules/utilities.js'; // Import createRipple
 import { initFormHandler } from './modules/formHandler.js';
 import { checkLevelUp, showXpBarTemporarily, initializeUIState } from './modules/uiElements.js'; // For initial XP bar display and temporary visibility
 import { initEasterEggs } from './modules/easterEggs.js';
@@ -68,5 +68,50 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeUIState(); 
     checkLevelUp(); // Initialize XP bar display - this might be redundant now, but harmless.
     showXpBarTemporarily(); // Show XP bar temporarily on load
-});
 
+    // Smooth scroll for "Coming Soon" button
+    const comingSoonButton = document.getElementById('comingSoonButton');
+    if (comingSoonButton) {
+        comingSoonButton.style.cursor = 'pointer'; // Indicate clickable
+        comingSoonButton.addEventListener('click', () => {
+            gsap.to(window, {
+                scrollTo: {
+                    y: "#ctaSection",
+                    offsetY: 50 // Adjust offset if needed
+                },
+                duration: 1,
+                ease: "power2.inOut"
+            });
+        });
+    }
+
+    // Footer link scrolling
+    const footerScrollLinks = {
+        'aboutFooterLink': '#departmentsSection',
+        'featuresFooterLink': '#featuresSection',
+        'certificationsFooterLink': '#certificationSection'
+    };
+
+    for (const linkId in footerScrollLinks) {
+        const link = document.getElementById(linkId);
+        const targetId = footerScrollLinks[linkId];
+        if (link) {
+            link.addEventListener('click', (e) => {
+                e.preventDefault(); // Prevent default anchor behavior
+                gsap.to(window, {
+                    scrollTo: {
+                        y: targetId,
+                        offsetY: 50
+                    },
+                    duration: 1,
+                    ease: "power2.inOut"
+                });
+            });
+        }
+    }
+
+    // Apply ripple effect to all buttons and the coming soon badge
+    document.querySelectorAll('button, #comingSoonButton').forEach(element => {
+        element.addEventListener('mousedown', createRipple);
+    });
+});

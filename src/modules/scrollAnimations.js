@@ -87,10 +87,9 @@ export function initScrollAnimations() {
             scrub: true, // Link animation to scroll position
             toggleActions: 'play none none none' // Scrub handles the reverse automatically
         },
-        scale: 0,
-        rotation: 360,
+        scale: 0.9, // Start from a closer scale for a more subtle effect
         opacity: 0,
-        ease: 'back.out(1.7)'
+        ease: 'power2.out' // A smoother ease
     });
     
     // Section Titles

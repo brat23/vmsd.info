@@ -9,7 +9,11 @@ export function initFormHandler() {
     form.addEventListener('submit', function(e) {
         e.preventDefault();
         
-        const email = form.querySelector('input').value;
+        const name = form.querySelector('input[name="name"]').value;
+        const email = form.querySelector('input[name="email"]').value;
+        const phone = form.querySelector('input[name="phone"]').value;
+        const message = form.querySelector('textarea[name="message"]').value;
+        const button = form.querySelector('button');
 
         // Immediately disable button to prevent multiple submissions
         button.disabled = true;
@@ -22,7 +26,12 @@ export function initFormHandler() {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ email: email })
+            body: JSON.stringify({
+                name: name,
+                email: email,
+                phone: phone,
+                message: message
+            })
         })
         .then(response => response.json())
         .then(data => {
@@ -33,7 +42,7 @@ export function initFormHandler() {
                 button.style.background = 'linear-gradient(135deg, #2ECC71, #27AE60)';
 
                 gsap.to(button, {
-                    scale: 1.2,
+                    scale: 1.1, // Reduced scale for subtlety
                     duration: 0.3,
                     yoyo: true,
                     repeat: 1,
@@ -57,20 +66,21 @@ export function initFormHandler() {
                 successMsg.style.boxShadow = '0 20px 60px rgba(0,0,0,0.5)';
                 successMsg.style.zIndex = '10000';
                 successMsg.style.fontFamily = "'Baloo 2', cursive";
-
+                successMsg.style.opacity = 0; // Start with opacity 0 for fade-in
                 document.body.appendChild(successMsg);
 
+                // Smoother, less jarring animation
                 gsap.fromTo(successMsg,
-                    { scale: 0, rotation: -180 },
-                    { scale: 1, rotation: 0, duration: 0.8, ease: 'back.out(1.7)' }
+                    { scale: 0.9, opacity: 0 },
+                    { scale: 1, opacity: 1, duration: 0.4, ease: 'power2.out' }
                 );
 
                 gsap.to(successMsg, {
-                    scale: 0,
+                    scale: 0.9,
                     opacity: 0,
-                    duration: 0.5,
+                    duration: 0.4,
                     delay: 3,
-                    ease: 'back.in(1.7)',
+                    ease: 'power2.in',
                     onComplete: () => successMsg.remove()
                 });
 
@@ -80,7 +90,7 @@ export function initFormHandler() {
                     button.textContent = originalText;
                     button.style.background = 'linear-gradient(135deg, #27AE60, #2ECC71)';
                     button.disabled = false; // Re-enable button
-                }, 3000);
+                }, 3500); // Increased delay to match animation
 
                 // Reward the user
                 animateCurrencyGain('vg');
@@ -88,8 +98,6 @@ export function initFormHandler() {
 
             } else {
                 console.error('Server error:', data.message);
-                // alert('Subscription failed: ' + data.message); // Provide user feedback
-                
                 displayFeedbackMessage(data.message, false); // Display error message
                 
                 button.textContent = 'Try Again 🚀';
@@ -99,8 +107,6 @@ export function initFormHandler() {
         })
         .catch(error => {
             console.error('Network error:', error);
-            // alert('An error occurred during subscription. Please try again later.'); // Provide user feedback
-            
             displayFeedbackMessage('An unexpected error occurred. Please try again later.', false); // Display error message
             
             button.textContent = 'Try Again 🚀';
@@ -128,20 +134,22 @@ function displayFeedbackMessage(message, isSuccess) {
     feedbackMsg.style.zIndex = '10000';
     feedbackMsg.style.fontFamily = "'Baloo 2', cursive";
     feedbackMsg.style.textAlign = 'center'; // Center text
+    feedbackMsg.style.opacity = 0;
 
     document.body.appendChild(feedbackMsg);
 
+    // Smoother animation for feedback message as well
     gsap.fromTo(feedbackMsg,
-        { scale: 0, rotation: -180 },
-        { scale: 1, rotation: 0, duration: 0.8, ease: 'back.out(1.7)' }
+        { scale: 0.9, opacity: 0 },
+        { scale: 1, opacity: 1, duration: 0.4, ease: 'power2.out' }
     );
 
     gsap.to(feedbackMsg, {
-        scale: 0,
+        scale: 0.9,
         opacity: 0,
-        duration: 0.5,
+        duration: 0.4,
         delay: 3,
-        ease: 'back.in(1.7)',
+        ease: 'power2.in',
         onComplete: () => feedbackMsg.remove()
     });
 }

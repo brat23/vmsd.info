@@ -130,6 +130,65 @@ export function animateCurrencyGain(type = 'rc') {
     showXpBarTemporarily(); // Show XP bar temporarily on any gain
 }
 
+// New function for generic XP gain animation
+export function animateXPGain(amount, posX, posY) {
+    if (amount <= 0) return;
+
+    addXP(amount); 
+    checkLevelUp();
+    showXpBarTemporarily();
+
+    // Create XP gain indicator
+    const gainIndicator = document.createElement('div');
+    gainIndicator.textContent = `+${amount} XP`;
+    gainIndicator.style.position = 'fixed';
+    gainIndicator.style.color = '#2ECC71'; // Green color for XP
+    gainIndicator.style.fontSize = '30px';
+    gainIndicator.style.fontWeight = '800';
+    gainIndicator.style.pointerEvents = 'none';
+    gainIndicator.style.zIndex = '10000';
+    gainIndicator.style.textShadow = '2px 2px 4px rgba(0,0,0,0.8)';
+    gainIndicator.style.left = `${posX}px`;
+    gainIndicator.style.top = `${posY}px`;
+    gainIndicator.style.transform = 'translate(-50%, -50%)'; // Center on click
+
+    document.body.appendChild(gainIndicator);
+
+    gsap.to(gainIndicator, {
+        y: posY - 70, // Move up
+        opacity: 0,
+        duration: 1.5,
+        ease: 'power2.out',
+        onComplete: () => gainIndicator.remove()
+    });
+
+    // Simple particle burst at click location
+    for (let i = 0; i < 15; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'particle';
+        particle.textContent = ['✨', '🌟', '🎉'][Math.floor(Math.random() * 3)];
+        particle.style.left = `${posX}px`;
+        particle.style.top = `${posY}px`;
+        particle.style.fontSize = (Math.random() * 20 + 10) + 'px';
+        document.body.appendChild(particle);
+
+        const angle = Math.random() * Math.PI * 2;
+        const distance = Math.random() * 80 + 40;
+        const x = posX + Math.cos(angle) * distance;
+        const y = posY + Math.sin(angle) * distance;
+
+        gsap.to(particle, {
+            x: x - posX, // Relative movement
+            y: y - posY, // Relative movement
+            rotation: Math.random() * 720,
+            opacity: 0,
+            duration: Math.random() * 1 + 0.8,
+            ease: 'power2.out',
+            onComplete: () => particle.remove()
+        });
+    }
+}
+
 export function checkLevelUp() {
     const xpFill = document.getElementById('xpFill');
     const xpText = document.querySelector('.xp-bar .xp-text');

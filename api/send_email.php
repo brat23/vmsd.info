@@ -1,88 +1,83 @@
 <?php
-         header('Content-Type: application/json');
-         // It's crucial to set Access-Control-Allow-Origin to your specific domain in production
-         // For local development, '*' can be used, but replace it with your actual frontend domain for security.
-         header('Access-Control-Allow-Origin: *');
-         header('Access-Control-Allow-Methods: POST, GET, OPTIONS');
-         header('Access-Control-Allow-Headers: Content-Type');
-    
-         // Handle preflight requests (OPTIONS method)
-        if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-            http_response_code(200);
-            exit();
-        }
+// Start the session to track submissions
+session_start();
 
-        // --- Database Configuration ---
-        // !!! IMPORTANT: Replace these with your actual database credentials from database.md !!!
-        define('DB_HOST', 'localhost');
-        define('DB_NAME', 'youruser_vmsd_db'); // e.g., youruser_vmsd_db
-        define('DB_USER', 'youruser_vmsd_user'); // e.g., youruser_vmsd_user
-        define('DB_PASS', 'YourStrongPassword'); // e.g., YourStrongPassword
-        // ------------------------------
-   
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $input = file_get_contents('php://input');
-            $data = json_decode($input, true);
-   
-            $user_email = filter_var($data['email'], FILTER_VALIDATE_EMAIL);
-   
-            if ($user_email) {
-                $db_success = false;
-                $db_message = '';
+header('Content-Type: application/json');
+header('Access-Control-Allow-Origin: *'); // Be specific in production
+header('Access-Control-Allow-Methods: POST, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type');
 
-                try {
-                    $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME, DB_USER, DB_PASS);
-                    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-                    $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+// Handle preflight requests
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit();
+}
 
-                    // Check if email already exists
-                    $stmt = $pdo->prepare("SELECT COUNT(*) FROM waiting_list WHERE email = :email");
-                    $stmt->execute([':email' => $user_email]);
-                    if ($stmt->fetchColumn() > 0) {
-                        echo json_encode(['success' => false, 'message' => 'This email is already on the waiting list.']);
-                        exit();
-                    }
-                    
-                    $stmt = $pdo->prepare("INSERT INTO waiting_list (email) VALUES (:email)");
-                    $stmt->execute([':email' => $user_email]);
-                    $db_success = true;
-                    $db_message = 'Email saved to database.';
+// --- Rate Limiting ---
+// Use a key based on the user's IP address to store submission times
+$session_key = 'submissions_' . md5($_SERVER['REMOTE_ADDR']);
 
-                } catch (PDOException $e) {
-                    error_log("Database error: " . $e->getMessage());
-                    $db_message = 'Failed to save email to database. Please try again later.';
-                    // If it's a duplicate entry error, provide a more user-friendly message
-                    if ($e->getCode() == 23000) { // SQLSTATE for Integrity Constraint Violation (e.g., duplicate unique key)
-                         $db_message = 'This email is already on the waiting list.';
-                    }
-                }
+if (!isset($_SESSION[$session_key])) {
+    $_SESSION[$session_key] = [];
+}
 
-                // If database insertion failed, report that.
-                if (!$db_success) {
-                    echo json_encode(['success' => false, 'message' => $db_message]);
-                    exit();
-                }
+$ten_minutes_ago = time() - (10 * 60);
 
-                // Proceed with sending email only if database save was successful
-                $to = 'bharath@vmsd.in'; // Recipient email address
-                $subject = 'New VMSD Waiting List Signup';
-                $message = "A new user has signed up for the waiting list:\n\nEmail: " . $user_email;
-                $headers = 'From: noreply@vmsd.info' . "\r\n" . // Replace with your domain
-                           'Reply-To: ' . $user_email . "\r\n" .
-                           'X-Mailer: PHP/' . phpversion();
-   
-                // Attempt to send the email
-                if (mail($to, $subject, $message, $headers)) {
-                    echo json_encode(['success' => true, 'message' => 'Thanks for signing up! You\'ve been added to the waiting list.']);
-                } else {
-                    // Log mail() errors for debugging. Check your PHP error logs.
-                    error_log("Failed to send email to $to from $user_email");
-                    echo json_encode(['success' => false, 'message' => 'Successfully added to waiting list, but failed to send confirmation email.']);
-                }
-            } else {
-                echo json_encode(['success' => false, 'message' => 'Invalid email address provided.']);
-            }
+// Discard timestamps older than 10 minutes
+$_SESSION[$session_key] = array_filter($_SESSION[$session_key], function($timestamp) use ($ten_minutes_ago) {
+    return $timestamp > $ten_minutes_ago;
+});
+
+// Check if the user has made 2 or more submissions in the last 10 minutes
+if (count($_SESSION[$session_key]) >= 2) {
+    http_response_code(429); // HTTP 429 Too Many Requests
+    echo json_encode(['success' => false, 'message' => 'You have submitted too frequently. Please try again in 10 minutes.']);
+    exit();
+}
+// --- End Rate Limiting ---
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $input = file_get_contents('php://input');
+    $data = json_decode($input, true);
+
+    // Sanitize all inputs
+    $name = filter_var($data['name'] ?? '', FILTER_SANITIZE_STRING);
+    $user_email = filter_var($data['email'] ?? null, FILTER_VALIDATE_EMAIL);
+    $phone = filter_var($data['phone'] ?? 'Not provided', FILTER_SANITIZE_STRING);
+    $user_message = filter_var($data['message'] ?? 'Not provided', FILTER_SANITIZE_STRING);
+
+    // Basic validation: Name and Email are required
+    if ($user_email && !empty($name)) {
+        $to = 'bharath@vmsd.in';
+        $subject = 'New VMSD Waiting List Signup / Contact';
+        
+        // Construct the email body
+        $email_body = "A new user has signed up for the waiting list:\n\n";
+        $email_body .= "Name: " . $name . "\n";
+        $email_body .= "Email: " . $user_email . "\n";
+        $email_body .= "Phone: " . $phone . "\n";
+        $email_body .= "Message: " . $user_message . "\n";
+
+        $headers = 'From: noreply@vmsd.info' . "\r\n" .
+                   'Reply-To: ' . $user_email . "\r\n" .
+                   'X-Mailer: PHP/' . phpversion();
+
+        // Attempt to send the email
+        if (mail($to, $subject, $email_body, $headers)) {
+            // On success, record the time of this submission
+            $_SESSION[$session_key][] = time();
+            echo json_encode(['success' => true, 'message' => 'Thanks for signing up! You\'ve been added to the waiting list.']);
         } else {
-            echo json_encode(['success' => false, 'message' => 'Invalid request method. Only POST is accepted.']);
+            // Log the error for debugging but show a generic message to the user
+            error_log("Mail failed to send. To: $to, From: $user_email");
+            echo json_encode(['success' => false, 'message' => 'Could not process your request at this time. Please try again later.']);
         }
-        ?>
+    } else {
+        // If validation fails
+        echo json_encode(['success' => false, 'message' => 'Please provide a valid name and email address.']);
+    }
+} else {
+    // If not a POST request
+    echo json_encode(['success' => false, 'message' => 'Invalid request method.']);
+}
+?>

@@ -222,6 +222,8 @@ body {
 }
 
 .coming-soon-badge {
+    position: relative; /* For ripple containment */
+    overflow: hidden; /* For ripple containment */
     background: linear-gradient(135deg, #E74C3C, #C0392B);
     color: white;
     font-weight: 800;
@@ -600,21 +602,6 @@ body {
     overflow: hidden;
 }
 
-.cta-box::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: conic-gradient(from 0deg, transparent, rgba(255, 215, 0, 0.3), transparent 30%);
-    animation: rotate 4s linear infinite;
-}
-
-@keyframes rotate {
-    100% { transform: rotate(360deg); }
-}
-
 .cta-title {
     font-family: 'Baloo 2', cursive;
     font-size: 56px;
@@ -638,6 +625,7 @@ body {
 
 .notify-form {
     display: flex;
+    flex-direction: column; /* Arrange inputs vertically */
     gap: 20px;
     max-width: 600px;
     margin: 0 auto;
@@ -663,7 +651,14 @@ body {
     transform: scale(1.02);
 }
 
+.notify-input[name="message"] {
+    resize: vertical;
+    min-height: 80px;
+}
+
 .notify-button {
+    position: relative; /* For ripple containment */
+    overflow: hidden; /* For ripple containment */
     padding: 20px 50px;
     font-size: 20px;
     font-weight: 800;
@@ -674,17 +669,18 @@ body {
     cursor: pointer;
     font-family: 'Baloo 2', cursive;
     box-shadow: 0 10px 30px rgba(39, 174, 96, 0.5);
-    transition: all 0.3s ease;
+    transition: all 0.2s ease-out; /* Made transition slightly faster */
     letter-spacing: 1px;
 }
 
 .notify-button:hover {
-    transform: translateY(-5px) scale(1.05);
+    transform: translateY(-4px) scale(1.03); /* Slightly more subtle hover */
     box-shadow: 0 15px 40px rgba(39, 174, 96, 0.7), 0 0 40px rgba(46, 204, 113, 0.6);
 }
 
 .notify-button:active {
-    transform: translateY(-2px) scale(1.02);
+    transform: scale(0.98); /* Scale down for a "pressed" effect */
+    transition-duration: 0.1s; /* Make the press feel faster */
 }
 
 /* Footer */
@@ -845,4 +841,21 @@ body {
     font-size: 24px;
     margin-top: 20px;
     font-weight: 700;
+}
+
+/* Ripple Effect */
+.ripple {
+    position: absolute;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.6);
+    transform: scale(0);
+    animation: ripple-animation 0.6s linear;
+    pointer-events: none;
+}
+
+@keyframes ripple-animation {
+    to {
+        transform: scale(4);
+        opacity: 0;
+    }
 }
